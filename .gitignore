@@ -1,6 +1,8 @@
 # Prerequisites
 *.d
-
+y.tab.*
+*.exe
+lex.yy.*
 # Object files
 *.o
 *.ko
