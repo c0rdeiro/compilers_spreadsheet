@@ -21,7 +21,7 @@ a					return SETA_ESQ;
 s					return SETA_BAIXO;
 d					return SETA_DIR;
 w					return SETA_CIMA;
-#[a-zA-Z]+			{yylval.sval = yytext; return TEXTO;}
+#[a-zA-Z0-9]+		{yylval.sval = yytext; return TEXTO;}
 =SUM 				{yylval.sval = yytext; return SUM;}
 =AVG 				{yylval.sval = yytext; return AVG;}
 =MAX 				{yylval.sval = yytext; return MAX;}

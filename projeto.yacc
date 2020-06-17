@@ -1,29 +1,7 @@
 %{
 #include <stdio.h>
 #include <math.h>
-
-
-
-#define FICHEIRO "dados.bin"
-#define COLUNAS		8
-#define LINHAS		20
-#define	MAX_TEXTO	80
-#define	TIPO_NUMERO	1
-#define TIPO_TEXTO	2
-#define TIPO_FORM   3
-
-
-
-
-struct dados {
-	double		numero;
-	char	texto[MAX_TEXTO];
-	int		tipo;	// TIPO_NUMERO ou TIPO_TEXTO ou TIPO_FORM
-	
-};
-typedef struct dados DADOS;
-
-
+#include "projeto.h"
 
 
 DADOS matriz[COLUNAS][LINHAS];
