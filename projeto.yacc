@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 #include "projeto.h"
-
+#include <string.h> 
+#include <stdlib.h>
 
 DADOS matriz[COLUNAS][LINHAS];
 int 	linha = 0;
@@ -15,7 +16,9 @@ double 	aux;
 char  	auxUi[MAX_TEXTO];
 int    	auxInt;
 char 	userInput[MAX_TEXTO];
-	
+int 	iaux = 0;
+int 	stackaux = 0;
+
 
 FILE* fp;
 %}
@@ -52,18 +55,17 @@ lista:	cmd '\n'
 			{ imprimir(); }
 	| 
 		arit  '\n'
-			{ 	matriz[coluna][linha].numero = $1;
+			{ 	
+				matriz[coluna][linha].numero = $1;
 			    matriz[coluna][linha].tipo = TIPO_FORM;
-				strcpy(matriz[coluna][linha].texto, userInput);
-				memset(userInput,'\0',sizeof(userInput));
-				imprimir(); }
+				postfixToInfix();
+			}
 	| 
 		lista arit '\n'
 			{ 	matriz[coluna][linha].numero = $2;
-			    matriz[coluna][linha].tipo = TIPO_FORM; 
-				strcpy(matriz[coluna][linha].texto, userInput);
-				memset(userInput,'\0',sizeof(userInput));
-				imprimir(); }				
+			    matriz[coluna][linha].tipo = TIPO_FORM;
+				postfixToInfix();
+			}				
 	;
 
 cmd:	NUMERO
@@ -71,13 +73,17 @@ cmd:	NUMERO
 			  matriz[coluna][linha].numero = $1; 
 			  matriz[coluna][linha].tipo = TIPO_NUMERO; 
 			}
+	| '-' NUMERO
+			{
+				matriz[coluna][linha].numero = -$2;
+				matriz[coluna][linha].tipo = TIPO_NUMERO;
+			} %prec UMINUS
 	
 	|	TEXTO
 			{ strcpy(matriz[coluna][linha].texto, $1);
 			  matriz[coluna][linha].tipo = TIPO_TEXTO;
 			  int mambojambo = 0;
-			  size_t length = strlen($1);
-			  size_t i = 0; 
+			  size_t length = strlen($1), i = 0;
 			  for (; i < length; i++) {
     		  	mambojambo += ($1[i] - '0');
 			  }
@@ -195,11 +201,7 @@ cmd:	NUMERO
 				if(matriz[coluna][linha].tipo == 1 || matriz[coluna][linha].tipo == 3){
 					matriz[coluna][linha].numero = round(matriz[coluna][linha].numero);	
 				}
-			}
-	
-
-			
-											
+			}										
 	|	SETA_ESQ
 			{ if(coluna > 0) coluna--; }
 	|	SETA_BAIXO
@@ -217,45 +219,51 @@ cmd:	NUMERO
 			  coluna = COLUNAS - 1;
 			  }
 	|   SAVE
-			{ 	fp = fopen(FICHEIRO, "wb");
-                fwrite(matriz, sizeof(matriz), 1, fp);
-                fclose(fp);
-			  }
+			{ 	
+				save();
+			}
 	|   READ
 			{ 	fp = fopen(FICHEIRO, "rb");
                 fread(matriz, sizeof(matriz), 1, fp);
                 fclose(fp);
-			  }
+			}
 	|   EXIT
-			{ exit(0);
-			  }
-	|   SAVEEXIT
-			{	fp = fopen(FICHEIRO, "wb");
-                fwrite(matriz, sizeof(matriz), 1, fp);
-                fclose(fp); 
+			{ 
 				exit(0);
-			  }
+			}
+	|   SAVEEXIT
+			{	
+				save(); 
+				exit(0);
+			}
 	|   GO '(' NUMERO NUMERO ')'
 			{	
 				coluna = $3;
 				linha = $4;
-			  }
+			}
 									
 	;
-arit: NUMERO NUMERO {	char cToStr[2];
+arit: NUMERO NUMERO {
+						char cToStr[2];
 						cToStr[0] = colToChar((int)$1);
 						cToStr[1] = '\0';
+						char buffer[64];                         
+						snprintf(buffer, sizeof buffer, "%.f", $2);                         
 						strcat(userInput, cToStr);
-						char buffer[64];
-						snprintf(buffer, sizeof buffer, "%.f", $2);
 						strcat(userInput, buffer);
+						strcat(userInput, " ");
+						iaux++;
 						$$ = matriz[(int)$1][(int)$2].numero;}
-	| arit '+' arit {	char cToStr[4];
+	| '(' arit ')'  {
+						$$ = $2;
+					}
+ 	| arit '+' arit {	char cToStr[4];
 						cToStr[0] = ' ';
 						cToStr[1] = '+';
 						cToStr[2] = ' ';
 						cToStr[3] = '\0';
 						strcat(userInput, cToStr);
+						iaux++;
 						$$ = $1 + $3;}
 	| arit '-' arit {	char cToStr[4];
 						cToStr[0] = ' ';
@@ -263,6 +271,7 @@ arit: NUMERO NUMERO {	char cToStr[2];
 						cToStr[2] = ' ';
 						cToStr[3] = '\0';
 						strcat(userInput, cToStr);
+						iaux++;
 						$$ = $1 - $3;}
 	| arit '*' arit {	char cToStr[4];
 						cToStr[0] = ' ';
@@ -270,6 +279,7 @@ arit: NUMERO NUMERO {	char cToStr[2];
 						cToStr[2] = ' ';
 						cToStr[3] = '\0';
 						strcat(userInput, cToStr);
+						iaux++;
 						$$ = $1 * $3;}
 	| arit '/' arit {	char cToStr[4];
 						cToStr[0] = ' ';
@@ -277,6 +287,7 @@ arit: NUMERO NUMERO {	char cToStr[2];
 						cToStr[2] = ' ';
 						cToStr[3] = '\0';
 						strcat(userInput, cToStr);
+						iaux++;
 						$$ = $1 / $3;}
 	| arit '^' arit {	char cToStr[4];
 						cToStr[0] = ' ';
@@ -284,6 +295,7 @@ arit: NUMERO NUMERO {	char cToStr[2];
 						cToStr[2] = ' ';
 						cToStr[3] = '\0';
 						strcat(userInput, cToStr);
+						iaux++;
 						$$ = pow($1,$3);}
 	
 	;
@@ -317,6 +329,7 @@ char colToChar(int col) {
 						return 'H';
 				}
 }
+
 int imprimir() {
 	int i, j;
 	// Imprimir célula especial
@@ -350,8 +363,60 @@ int imprimir() {
 	}
 }
 
+int postfixToInfix(){
+	
+				char ** res = NULL;
+				char * p = strtok (userInput, " ");
+				int  i = 0, h = 0, g = 0;
+				char charFinal[MAX_TEXTO];
+
+				while(p)
+					{
+						res = realloc (res, sizeof (char*) * ++i);
+
+  						if (res == NULL)
+    					exit (-1);
+
+ 						res[i-1] = p;
+
+  						p = strtok (NULL, " ");
+				 
+					}
+				res = realloc (res, sizeof (char*) * (i+1));
+				res[i] = 0;
+				int size = i;
+				char *arrayStack[50];
+				for (h = 0; h < size; ++h){
+					if(strcmp(res[h],"+") == 0 || strcmp(res[h],"-") == 0 || strcmp(res[h],"*") == 0 || strcmp(res[h],"/") == 0 || strcmp(res[h],"^") == 0){
+						char lapadentrojoca[MAX_TEXTO];
+						memset(lapadentrojoca,'\0',strlen(lapadentrojoca));
+						strcat(lapadentrojoca, arrayStack[stackaux-2]);
+						strcat(lapadentrojoca, res[h]);
+						strcat(lapadentrojoca, arrayStack[stackaux-1]);
+						stackaux -= 2;
+						strcpy(arrayStack[stackaux], lapadentrojoca);
+						stackaux++;		
+					}else{
+							arrayStack[stackaux] = res[h];
+							stackaux++;
+						}
+				}
+				
+				strcpy(matriz[coluna][linha].texto, arrayStack[stackaux-1]);
+				free(res);
+				memset(userInput,'\0',sizeof(userInput));
+				imprimir();
+}
+
+int save(){
+	fp = fopen(FICHEIRO, "wb");
+    fwrite(matriz, sizeof(matriz), 1, fp);
+    fclose(fp);
+}
+
 int main() {
 	imprimir();
 	return yyparse();
 }
+
 
